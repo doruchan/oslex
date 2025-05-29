@@ -1,5 +1,8 @@
+"""
+oslex module
+"""
 import sys
-from typing import List
+from typing import List, Optional
 
 
 def is_posix() -> bool:
@@ -19,7 +22,8 @@ def is_windows() -> bool:
     """
 
     if is_posix():
-        # This early return is likely redundant, but we want to be 100% equivalent to the if-elseif structure found in os.py
+        # This early return is likely redundant, but we want to be 100% 
+        # equivalent to the if-elseif structure found in os.py
         # See https://github.com/python/cpython/blob/3.7/Lib/os.py
         return False
 
@@ -31,39 +35,73 @@ def is_windows() -> bool:
 if is_posix():
     import shlex as underlying
 elif is_windows():
-    # mslex has no type annotations -> we have to ignore the "import" error
-    # also, mypy does not understand conditional importing, so it thinks we are redefining the name "underlying" -> we have to ignore the "no-redef" error
-    import mslex as underlying  # type: ignore[import, no-redef]
+    # mypy does not understand conditional importing, so it thinks 
+    # we are redefining the name "underlying" -> we have to ignore the "no-redef" error
+    import mslex as underlying  # type: ignore[no-redef]
 else:
     raise ImportError('no os specific module found')
 
 # Define functions
 
 
-def quote(s: str) -> str:
+def quote(s: str,
+          # windows arguments
+          for_cmd: Optional[bool] = None) -> str:
     """
-    Return a shell-escaped version of the string s. The returned value is a string that can safely be used as one token in a shell command line, for cases where you cannot use a list.
+    Return a shell-escaped version of the string s.
+    The returned value is a string that can safely be used
+    as one token in a shell command line, for cases where you cannot use a list.
     This function is safe to use both for POSIX-compatible shells and for Windows's cmd.
     """
-    return underlying.quote(s)
+    kwargs = {}
+    if is_windows() and for_cmd is not None:
+        kwargs = dict(for_cmd=for_cmd)
+    return underlying.quote(s, **kwargs)
 
 
-def split(s: str) -> List[str]:
+def split(s: str,
+          # posix arguments
+          comments: Optional[bool] = None, posix : Optional[bool] = None,
+          # windows arguments
+          like_cmd: Optional[bool] = None, check: Optional[bool] = None,
+          ucrt: Optional[bool] = None) -> List[str]:
     """
     Split the string s using shell-like syntax.
-    This function is safe to use both for POSIX-compatible shells and for Windows's cmd.
+    This function is safe to use both for POSIX-compatible shells 
+    and for Windows's cmd.
     """
-    return underlying.split(s)
+    if is_windows():
+        kwargs = dict(
+            like_cmd=like_cmd,
+            check=check,
+            ucrt=ucrt,
+        )
+    else:
+        kwargs = dict(
+            comments=comments,
+            posix=posix,
+        )
+
+    for key, value in dict(kwargs).items():
+        if value is None:
+            kwargs.pop(key)
+
+    return underlying.split(s, **kwargs)
 
 
-def join(split_command: List[str]) -> str:
+def join(split_command: List[str],
+         # windows arguments
+         for_cmd: Optional[bool] = None) -> str:
     """
-    Concatenate the tokens of the list split_command and return a string. This function is the inverse of split().
-    The returned value is shell-escaped to protect against injection vulnerabilities (see quote()).
-    This function is safe to use both for POSIX-compatible shells and for Windows's cmd.
+    Concatenate the tokens of the list split_command and return a string. 
+    This function is the inverse of split().
+    The returned value is shell-escaped to protect against injection 
+    vulnerabilities (see quote()).
+    This function is safe to use both for POSIX-compatible shells and 
+    for Windows's cmd.
     """
-    # shlex only has join() since Python 3.8
-    # mslex doesn't have it at all
-    # It's easier to just implement it without trying to import the functionality
-    # Implementation is the same as shlex.join(), see https://github.com/python/cpython/blob/3.8/Lib/shlex.py
-    return ' '.join(quote(arg) for arg in split_command)
+    kwargs = {}
+    if is_windows() and for_cmd is not None:
+        kwargs = dict(for_cmd=for_cmd)
+
+    return underlying.join(split_command, **kwargs)
