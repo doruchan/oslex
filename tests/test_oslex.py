@@ -14,10 +14,10 @@ split_cases = [
     "^!foo^!",
     "foo bar^!",
     "^!foo bar^!",
-    "foo\\bar\\baz\\",
-    "foo bar\\baz\\\\",
+    r"foo\\bar\\baz\\",
+    r"foo\\bar\\baz\\",
     '"foo () bar\\baz\\\\"',
-    '"foo () bar\\baz\\\\\\"',
+    r'"foo () bar\\baz\\\\\\"',
      r"foo\bar^! baz",
 ]
 
