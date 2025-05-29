@@ -53,10 +53,9 @@ def quote(s: str,
     as one token in a shell command line, for cases where you cannot use a list.
     This function is safe to use both for POSIX-compatible shells and for Windows's cmd.
     """
-    if is_windows():
+    kwargs = {}
+    if is_windows() and for_cmd is not None:
         kwargs = dict(for_cmd=for_cmd)
-    else:
-        kwargs = {}
     return underlying.quote(s, **kwargs)
 
 
@@ -82,6 +81,11 @@ def split(s: str,
             comments=comments,
             posix=posix,
         )
+
+    for key, value in dict(kwargs).items():
+        if value is None:
+            kwargs.pop(key)
+
     return underlying.split(s, **kwargs)
 
 
@@ -96,8 +100,8 @@ def join(split_command: List[str],
     This function is safe to use both for POSIX-compatible shells and 
     for Windows's cmd.
     """
-    if is_windows():
+    kwargs = {}
+    if is_windows() and for_cmd is not None:
         kwargs = dict(for_cmd=for_cmd)
-    else:
-        kwargs = {}
+
     return underlying.join(split_command, **kwargs)
